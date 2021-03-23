@@ -1,0 +1,232 @@
+From 9ffc047e2d4173b06595a1800eb1366faddd4ba8 Mon Sep 17 00:00:00 2001
+Message-Id: <9ffc047e2d4173b06595a1800eb1366faddd4ba8.1616528075.git.36827317+vvd170501@users.noreply.github.com>
+From: vvd170501 <36827317+vvd170501@users.noreply.github.com>
+Date: Tue, 23 Mar 2021 19:09:33 +0300
+Subject: [PATCH] Add auto-detection for multicast interface
+
+If --miface is not specified, libupnp is initialized with the interface
+which is used for routing multicast packets to 239.255.255.250.
+
+DISCLAIMER: this patch is experimental, it may not work on your system
+or even lead to a crash. Use it at your own risk
+---
+ ...interface-used-for-routing-upnp-mult.patch | 207 ++++++++++++++++++
+ 1 file changed, 207 insertions(+)
+ create mode 100644 libvlc/patches/vlc3/1000-Auto-detect-the-interface-used-for-routing-upnp-mult.patch
+
+diff --git a/libvlc/patches/vlc3/1000-Auto-detect-the-interface-used-for-routing-upnp-mult.patch b/libvlc/patches/vlc3/1000-Auto-detect-the-interface-used-for-routing-upnp-mult.patch
+new file mode 100644
+index 000000000..9ea3f4f97
+--- /dev/null
++++ b/libvlc/patches/vlc3/1000-Auto-detect-the-interface-used-for-routing-upnp-mult.patch
+@@ -0,0 +1,207 @@
++From b7233baa7c4c9a40927d586c0b9455018b5b6cfc Mon Sep 17 00:00:00 2001
++Message-Id: <b7233baa7c4c9a40927d586c0b9455018b5b6cfc.1616527899.git.36827317+vvd170501@users.noreply.github.com>
++From: vvd170501 <36827317+vvd170501@users.noreply.github.com>
++Date: Tue, 23 Mar 2021 18:59:39 +0300
++Subject: [PATCH] Auto-detect the interface used for routing upnp multicasts
++
++Message-Id: <cbf9760fdb3b7faec08f4806be1172e811156938.1616515200.git.36827317+vvd170501@users.noreply.github.com>
++---
++ .../src/upnp/auto-multicast-interface.patch   | 173 ++++++++++++++++++
++ contrib/src/upnp/rules.mak                    |   1 +
++ 2 files changed, 174 insertions(+)
++ create mode 100644 contrib/src/upnp/auto-multicast-interface.patch
++
++diff --git a/contrib/src/upnp/auto-multicast-interface.patch b/contrib/src/upnp/auto-multicast-interface.patch
++new file mode 100644
++index 0000000000..1e40414de9
++--- /dev/null
+++++ b/contrib/src/upnp/auto-multicast-interface.patch
++@@ -0,0 +1,173 @@
+++From 81c78c6fcb8d7769c9c666b3256ea02f730b667c Mon Sep 17 00:00:00 2001
+++From: vvd170501 <36827317+vvd170501@users.noreply.github.com>
+++Date: Tue, 23 Mar 2021 18:36:09 +0300
+++Subject: [PATCH] use the default interface for multicast (may be broken)
+++
+++
+++diff --git a/upnp/Makefile.am b/upnp/Makefile.am
+++index bafe1053..49df8937 100644
+++--- a/upnp/Makefile.am
++++++ b/upnp/Makefile.am
+++@@ -123,7 +123,8 @@ endif
+++ # api
+++ libupnp_la_SOURCES += \
+++ 	src/api/UpnpString.c \
+++-	src/api/upnpapi.c
++++	src/api/upnpapi.c \
++++	src/api/auto-mcast.c
+++ 
+++ if ENABLE_TOOLS
+++ libupnp_la_SOURCES += src/api/upnptools.c
+++diff --git a/upnp/src/api/auto-mcast.c b/upnp/src/api/auto-mcast.c
+++new file mode 100644
+++index 00000000..cf697e82
+++--- /dev/null
++++++ b/upnp/src/api/auto-mcast.c
+++@@ -0,0 +1,112 @@
++++// this code is based on https://stackoverflow.com/a/3288983
++++
++++#include <string.h>
++++#include <unistd.h>
++++#include <arpa/inet.h>
++++#include <linux/netlink.h>
++++#include <linux/rtnetlink.h>
++++#include <net/if.h>
++++#include <sys/socket.h>
++++
++++
++++#define BUFSIZE 8192
++++
++++static char ifName[IF_NAMESIZE];
++++
++++static int readNlSock(int sockFd, char *bufPtr, int seqNum, int pId) {
++++    struct nlmsghdr *nlHdr;
++++    int readLen = 0, msgLen = 0;
++++
++++    do {
++++        if ((readLen = recv(sockFd, bufPtr, BUFSIZE - msgLen, 0)) < 0) {
++++            return -1;
++++        }
++++
++++        nlHdr = (struct nlmsghdr *) bufPtr;
++++        if (!NLMSG_OK(nlHdr, readLen) || (nlHdr->nlmsg_type == NLMSG_ERROR)) {
++++            return -1;
++++        }
++++        if (nlHdr->nlmsg_type == NLMSG_DONE) {
++++            break;
++++        } else {
++++            bufPtr += readLen;
++++            msgLen += readLen;
++++        }
++++
++++        if (!(nlHdr->nlmsg_flags & NLM_F_MULTI)) {
++++            break;
++++        }
++++    } while ((nlHdr->nlmsg_seq != seqNum) || (nlHdr->nlmsg_pid != pId));
++++    return msgLen;
++++}
++++
++++static char* parse_ifname(struct nlmsghdr *nlHdr) {
++++    struct rtmsg *rtMsg;
++++    struct rtattr *rtAttr;
++++    int rtLen;
++++
++++    rtMsg = (struct rtmsg *) NLMSG_DATA(nlHdr);
++++
++++    rtAttr = (struct rtattr *) RTM_RTA(rtMsg);
++++    rtLen = RTM_PAYLOAD(nlHdr);
++++
++++    for (; RTA_OK(rtAttr, rtLen); rtAttr = RTA_NEXT(rtAttr, rtLen)) {
++++        if (rtAttr->rta_type ==RTA_OIF) {
++++            if(!if_indextoname(*(int *) RTA_DATA(rtAttr), ifName)) {
++++                return NULL;
++++            }
++++            return ifName;
++++        }
++++    }
++++    return NULL;
++++}
++++
++++const char* get_ifname(const char* address) {
++++    // NOTE this function is not threadsafe
++++    // UpnpInit2 uses a mutex, so it should be OK
++++    char msgBuf[BUFSIZE];
++++    struct nlmsghdr *nlMsg;
++++    struct rtmsg *rtMsg;
++++    struct in_addr addr;
++++    inet_aton(address, &addr);
++++
++++    int sock, len, msgSeq = 0;
++++
++++    if ((sock = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE)) < 0) {
++++        return NULL;
++++    }
++++
++++    memset(msgBuf, 0, BUFSIZE);
++++
++++    nlMsg = (struct nlmsghdr *) msgBuf;
++++    rtMsg = (struct rtmsg *) NLMSG_DATA(nlMsg);
++++
++++    nlMsg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
++++    nlMsg->nlmsg_type = RTM_GETROUTE;
++++    nlMsg->nlmsg_flags = NLM_F_REQUEST;
++++    nlMsg->nlmsg_seq = msgSeq++;
++++    nlMsg->nlmsg_pid = getpid();
++++
++++	rtMsg->rtm_family = AF_INET;
++++    rtMsg->rtm_dst_len = 32;
++++
++++	struct rtattr *rta = (struct rtattr*) (((char *) nlMsg) + NLMSG_ALIGN(nlMsg->nlmsg_len));
++++	rta->rta_type = RTA_DST;
++++	rta->rta_len = RTA_LENGTH(sizeof(addr));
++++	memcpy(RTA_DATA(rta), &addr, sizeof(addr));
++++	nlMsg->nlmsg_len += NLMSG_ALIGN(nlMsg->nlmsg_len) + RTA_ALIGN(RTA_LENGTH(sizeof(addr)));
++++
++++    if (send(sock, nlMsg, nlMsg->nlmsg_len, 0) < 0) {
++++        close(sock);
++++        return NULL;
++++    }
++++
++++    if ((len = readNlSock(sock, msgBuf, msgSeq, getpid())) < 0) {
++++        close(sock);
++++        return NULL;
++++    }
++++
++++    close(sock);
++++
++++    return parse_ifname(nlMsg);
++++}
+++diff --git a/upnp/src/api/upnpapi.c b/upnp/src/api/upnpapi.c
+++index 7d4e831b..ffb3cee5 100644
+++--- a/upnp/src/api/upnpapi.c
++++++ b/upnp/src/api/upnpapi.c
+++@@ -41,6 +41,7 @@
+++ #include "config.h"
+++ 
+++ #include "upnpapi.h"
++++#include "auto-mcast.h"
+++ 
+++ #include "httpreadwrite.h"
+++ #include "membuffer.h"
+++@@ -507,6 +508,9 @@ int UpnpInit2(const char *IfName, unsigned short DestPort)
+++ 		goto exit_function;
+++ 	}
+++ 
++++    if (!IfName) {
++++        IfName = get_ifname("239.255.255.250");
++++    }
+++ 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+++ 		"UpnpInit2 with IfName=%s, DestPort=%d.\n", 
+++ 		IfName ? IfName : "", DestPort);
+++diff --git a/upnp/src/inc/auto-mcast.h b/upnp/src/inc/auto-mcast.h
+++new file mode 100644
+++index 00000000..302079b6
+++--- /dev/null
++++++ b/upnp/src/inc/auto-mcast.h
+++@@ -0,0 +1,4 @@
++++#ifndef AUTOMCAST_H
++++#define AUTOMCAST_H
++++const char* get_ifname(const char* address);
++++#endif
+++-- 
+++2.25.1
+++
++diff --git a/contrib/src/upnp/rules.mak b/contrib/src/upnp/rules.mak
++index 83ffca5eb0..8b090efb45 100644
++--- a/contrib/src/upnp/rules.mak
+++++ b/contrib/src/upnp/rules.mak
++@@ -49,6 +49,7 @@ endif
++ 	$(APPLY) $(SRC)/upnp/upnp-no-debugfile.patch
++ 	$(APPLY) $(SRC)/upnp/use-unicode.patch
++ 	$(APPLY) $(SRC)/upnp/multicast.patch
+++	$(APPLY) $(SRC)/upnp/auto-multicast-interface.patch
++ 	$(UPDATE_AUTOCONFIG) && cd $(UNPACK_DIR) && mv config.guess config.sub build-aux/
++ 	$(MOVE)
++ 
++-- 
++2.25.1
++
+-- 
+2.25.1
+
