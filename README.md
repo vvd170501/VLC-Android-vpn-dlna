@@ -1,8 +1,12 @@
 This repository contains patches for [VLC for Android](https://code.videolan.org/videolan/vlc-android) which enable discovery of UPNP/DLNA servers over VPN.
 
-These patches were tested on [v3.3.4](https://code.videolan.org/videolan/vlc-android/-/commit/13e15aa9d2c691a7fdfbf4ab91df9a7299d590bf) and may not work with other versions
+These patches were tested with [VLC 3.3.4](https://code.videolan.org/videolan/vlc-android/-/commit/13e15aa9d2c691a7fdfbf4ab91df9a7299d590bf)
+and [VLC 3.4.1](https://code.videolan.org/videolan/vlc-android/-/commit/d80f98933c30b561d3b00f1c61ecf6b59fcbb18e) on arm64 and may not work with other versions or different architectures.
 
 ## Usage:
+
+### Manual patching
+
 1) Clone the [official repository](https://code.videolan.org/videolan/vlc-android), checkout a compatible version
 2) Apply [the first patch](0001-allow-tunnel-miface.patch)
 3) Build the application (with libvlc) OR build a compatible version of libvlc and replace the `libvlc.so` in the original APK (e.g. using Apktool)
@@ -15,3 +19,16 @@ To use another interface (e.g. a wireless adapter) for DLNA discovery, remove th
 You may apply [the second patch](0002-auto-interface.patch) after step 2.
 With this patch applied, libupnp will use the default interface which is used to send packets to `239.255.255.250` (i.e. `$(ip route get 239.255.255.250)`).
 You should still be able to overwrite the interface for libupnp via the `--miface` option
+
+### Build with Docker (applies both patches)
+
+```bash
+# build the APK (unsigned release version)
+./build.sh
+# build only libvlc
+./build.sh -l
+```
+
+You can use `ARCH` (default is `arm64`) and `VERSION` (default `3.4.1`) environment variables to select a different architecture or VLC version.
+
+Generated files are saved to `./out`.
