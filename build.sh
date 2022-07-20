@@ -11,4 +11,4 @@ docker run \
     -it --rm \
     -v "$BASEDIR:$MPOINT" \
     -e ARCH=${ARCH:-arm64} -e VERSION=${VERSION:-3.5.0} \
-    registry.videolan.org/vlc-debian-android:20220224093321 "$MPOINT/compile.sh" "$@"
+    registry.videolan.org/vlc-debian-android:${DOCKER_IMAGE_TAG:-20220224093321} "$MPOINT/compile.sh" "$@"

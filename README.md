@@ -1,11 +1,6 @@
 This repository contains patches for [VLC for Android](https://code.videolan.org/videolan/vlc-android) which enable discovery of UPNP/DLNA servers over VPN.
 
-Patches were tested on arm64 with the following VLC versions:
-- [3.3.4](https://code.videolan.org/videolan/vlc-android/-/commit/13e15aa9d2c691a7fdfbf4ab91df9a7299d590bf),
-- [3.4.1](https://code.videolan.org/videolan/vlc-android/-/commit/d80f98933c30b561d3b00f1c61ecf6b59fcbb18e),
-- [3.4.4](https://code.videolan.org/videolan/vlc-android/-/commit/fbedb374271a0e38a7971647bfe9d4d753f48fdb)
-- [3.5.0](https://code.videolan.org/videolan/vlc-android/-/commit/5855fc645a177d7870b56f6f9b7768353798e7e3)
-These patches may not work with other versions or different architectures.
+These patches were tested on arm64 with some recent versions of VLC app (see below). They may not work with other versions or architectures.
 
 ## Usage:
 
@@ -34,5 +29,19 @@ You should still be able to overwrite the interface for libupnp via the `--mifac
 ```
 
 You can use `ARCH` (default is `arm64`) and `VERSION` (default `3.5.0`) environment variables to select a different architecture or VLC version.
+Use `DOCKER_IMAGE_TAG` environment variable to select which version of `registry.videolan.org/vlc-debian-android` image will be used for build.
 
 Generated files are saved to `./out`.
+
+### Tested builds
+
+```bash
+# NOTE doesn't work anymore (git clone fails due to certificate error). May still be possible to build with a newer docker image
+DOCKER_IMAGE_TAG=20200529135226 VERSION=3.3.4 ./build.sh -l
+
+DOCKER_IMAGE_TAG=20210915065913 VERSION=3.4.1 ./build.sh -l
+DOCKER_IMAGE_TAG=20210915065913 VERSION=3.4.4 ./build.sh -l
+
+# Broken (libvlc dir was removed between 3.4.4 and 3.5.0). TODO update patches
+DOCKER_IMAGE_TAG=20220224093321 VERSION=3.5.0 ./build.sh -l
+```
