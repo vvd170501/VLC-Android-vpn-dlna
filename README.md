@@ -1,7 +1,11 @@
 This repository contains patches for [VLC for Android](https://code.videolan.org/videolan/vlc-android) which enable discovery of UPNP/DLNA servers over VPN.
 
-These patches were tested with [VLC 3.3.4](https://code.videolan.org/videolan/vlc-android/-/commit/13e15aa9d2c691a7fdfbf4ab91df9a7299d590bf)
-and [VLC 3.4.1](https://code.videolan.org/videolan/vlc-android/-/commit/d80f98933c30b561d3b00f1c61ecf6b59fcbb18e) on arm64 and may not work with other versions or different architectures.
+Patches were tested on arm64 with the following VLC versions:
+- [3.3.4](https://code.videolan.org/videolan/vlc-android/-/commit/13e15aa9d2c691a7fdfbf4ab91df9a7299d590bf),
+- [3.4.1](https://code.videolan.org/videolan/vlc-android/-/commit/d80f98933c30b561d3b00f1c61ecf6b59fcbb18e),
+- [3.4.4](https://code.videolan.org/videolan/vlc-android/-/commit/fbedb374271a0e38a7971647bfe9d4d753f48fdb)
+- [3.5.0](https://code.videolan.org/videolan/vlc-android/-/commit/5855fc645a177d7870b56f6f9b7768353798e7e3)
+These patches may not work with other versions or different architectures.
 
 ## Usage:
 
@@ -29,6 +33,6 @@ You should still be able to overwrite the interface for libupnp via the `--mifac
 ./build.sh -l
 ```
 
-You can use `ARCH` (default is `arm64`) and `VERSION` (default `3.4.1`) environment variables to select a different architecture or VLC version.
+You can use `ARCH` (default is `arm64`) and `VERSION` (default `3.5.0`) environment variables to select a different architecture or VLC version.
 
 Generated files are saved to `./out`.
