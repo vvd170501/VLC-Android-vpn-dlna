@@ -15,7 +15,14 @@ cd /tmp/
 git clone https://code.videolan.org/videolan/vlc-android
 cd ./vlc-android/
 git checkout $VERSION
-git am --message-id "$BASEDIR"/patches/*.patch
+
+if verlt $VERSION 3.5.0; then
+    git am --message-id "$BASEDIR/patches/pre-3.5.0/"*.patch
+else
+    # patch VLC's buildsystem scripts to apply other patches later
+    git am --message-id "$BASEDIR/patches/buildsystem/"*.patch
+    export VLC_PATCHES_DIR="$BASEDIR/patches/"
+fi
 
 LIBVLC_ARG=""
 ONLY_LIBVLC=0
@@ -29,6 +36,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+# TODO simplify libvlc build for 3.5.0+. It should be enough to clone libvlcjni repo only
 MAKEFLAGS="-j8" ./buildsystem/compile.sh -a $ARCH -r $LIBVLC_ARG
 if [ $ONLY_LIBVLC = 1 ]; then
     if verlt $VERSION 3.5.0; then

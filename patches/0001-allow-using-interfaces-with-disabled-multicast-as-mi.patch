@@ -1,0 +1,80 @@
+From 8dbc7b4ae8e3d9d56dadb49e1861bc46c6f8ca37 Mon Sep 17 00:00:00 2001
+Message-Id: <8dbc7b4ae8e3d9d56dadb49e1861bc46c6f8ca37.1658442152.git.36827317+vvd170501@users.noreply.github.com>
+From: vvd170501 <36827317+vvd170501@users.noreply.github.com>
+Date: Mon, 22 Mar 2021 21:37:07 +0300
+Subject: [PATCH 1/2] allow using interfaces with disabled multicast as
+ --miface
+
+libupnp (used by libvlc) skips interfaces without MULTICAST flag during
+initialization (UpnpInit2). Android doesn't set this flag on tunnel (VPN) interfaces.
+As a result, VLC isn't able to discover DLNA servers which are
+accessible via VPN (see https://forum.videolan.org/viewtopic.php?f=7&t=154929)
+
+It seems that MULTICAST flag isn't required for sending multicast
+packets (a least it works with a Wireguard tunnel).
+
+This patch allows initializing libupnp using a tunnel interface, if it
+is specified as --miface (in Advanced options)
+
+DISCLAIMER: this patch is experimental and was only tested with a Wireguard tunnel. It may not
+work with other VPN types
+Message-Id: <799640559fd17fcfce0985d183db3578ce5fa6ab.1616448282.git.36827317+vvd170501@users.noreply.github.com>
+---
+ ...rfaces-with-disabled-multicast-as-mi.patch | 45 +++++++++++++++++++
+ 1 file changed, 45 insertions(+)
+ create mode 100755 libvlc/patches/vlc3/0999-allow-using-interfaces-with-disabled-multicast-as-mi.patch
+
+diff --git a/libvlc/patches/vlc3/0999-allow-using-interfaces-with-disabled-multicast-as-mi.patch b/libvlc/patches/vlc3/0999-allow-using-interfaces-with-disabled-multicast-as-mi.patch
+new file mode 100755
+index 0000000..4f5ba1a
+--- /dev/null
++++ b/libvlc/patches/vlc3/0999-allow-using-interfaces-with-disabled-multicast-as-mi.patch
+@@ -0,0 +1,45 @@
++From c0b1ae7e01b5b041906bdf6ed78b12fd0937e9f4 Mon Sep 17 00:00:00 2001
++Message-Id: <c0b1ae7e01b5b041906bdf6ed78b12fd0937e9f4.1658441825.git.buildbot@videolan.org>
++From: vvd170501 <36827317+vvd170501@users.noreply.github.com>
++Date: Mon, 22 Mar 2021 21:34:06 +0300
++Subject: [PATCH 1/2] allow using interfaces with disabled multicast as
++ --miface
++
++---
++ contrib/src/upnp/multicast.patch | 11 +++++++++++
++ contrib/src/upnp/rules.mak       |  1 +
++ 2 files changed, 12 insertions(+)
++ create mode 100644 contrib/src/upnp/multicast.patch
++
++diff --git a/contrib/src/upnp/multicast.patch b/contrib/src/upnp/multicast.patch
++new file mode 100644
++index 0000000000..cfe34be373
++--- /dev/null
+++++ b/contrib/src/upnp/multicast.patch
++@@ -0,0 +1,11 @@
+++--- upnp/upnp/src/api/upnpapi.c.orig	2013-04-08 00:23:46.000000000 +0200
++++++ upnp/upnp/src/api/upnpapi.c	2013-04-08 00:25:49.000000000 +0200
+++@@ -3495,7 +3495,7 @@ int UpnpGetIfInfo(const char *IfName)
+++ 		/* don't support MULTICAST. */
+++ 		if ((ifReq.ifr_flags & IFF_LOOPBACK)
+++ 		    || (!(ifReq.ifr_flags & IFF_UP))
+++-		    || (!(ifReq.ifr_flags & IFF_MULTICAST))) {
++++		    || (!(ifReq.ifr_flags & IFF_MULTICAST) && !IfName)) {
+++ 			continue;
+++ 		}
+++ 		if (ifname_found == 0) {
++diff --git a/contrib/src/upnp/rules.mak b/contrib/src/upnp/rules.mak
++index 762a5c052d..2fc08dd590 100644
++--- a/contrib/src/upnp/rules.mak
+++++ b/contrib/src/upnp/rules.mak
++@@ -50,6 +50,7 @@ ifdef HAVE_ANDROID
++ endif
++ 	$(APPLY) $(SRC)/upnp/miniserver.patch
++ 	$(APPLY) $(SRC)/upnp/upnp-no-debugfile.patch
+++	$(APPLY) $(SRC)/upnp/multicast.patch
++ 	$(UPDATE_AUTOCONFIG)
++ 	$(MOVE)
++ 
++-- 
++2.20.1
++
+-- 
+2.34.1
+

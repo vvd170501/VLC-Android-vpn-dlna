@@ -1,0 +1,27 @@
+From 995b4173c0fd72f52c3810806bfb5aa8981476da Mon Sep 17 00:00:00 2001
+From: VLC Android <buildbot@videolan.org>
+Date: Thu, 21 Jul 2022 00:12:45 +0000
+Subject: [PATCH] Patch compile.sh to apply other patches to libvlcjni
+
+---
+ buildsystem/compile.sh | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/buildsystem/compile.sh b/buildsystem/compile.sh
+index b639bc940..8533cc8ae 100755
+--- a/buildsystem/compile.sh
++++ b/buildsystem/compile.sh
+@@ -272,6 +272,10 @@ if [ ! -d "libvlcjni" ] || [ ! -d "libvlcjni/.git" ]; then
+     cd ..
+ fi
+
++cd libvlcjni
++git am --message-id "$VLC_PATCHES_DIR/"0*.patch
++cd ..
++
+ get_vlc_args=
+ if [ "$BYPASS_VLC_SRC_CHECKS" = 1 ]; then
+     get_vlc_args="${get_vlc_args} -b"
+--
+2.20.1
+

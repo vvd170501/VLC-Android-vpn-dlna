@@ -42,6 +42,5 @@ DOCKER_IMAGE_TAG=20200529135226 VERSION=3.3.4 ./build.sh -l
 DOCKER_IMAGE_TAG=20210915065913 VERSION=3.4.1 ./build.sh -l
 DOCKER_IMAGE_TAG=20210915065913 VERSION=3.4.4 ./build.sh -l
 
-# Broken (libvlc dir was removed between 3.4.4 and 3.5.0). TODO update patches
 DOCKER_IMAGE_TAG=20220224093321 VERSION=3.5.0 ./build.sh -l
 ```
