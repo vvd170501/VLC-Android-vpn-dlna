@@ -20,6 +20,7 @@ if verlt $VERSION 3.5.0; then
     git am --message-id "$BASEDIR/patches/pre-3.5.0/"*.patch
 else
     # patch VLC's buildsystem scripts to apply other patches later
+    # TODO clone repos manually and patch only pupnp? 3-level patches are unreadable and hard to maintain
     git am --message-id "$BASEDIR/patches/buildsystem/"*.patch
     export VLC_PATCHES_DIR="$BASEDIR/patches/"
 fi

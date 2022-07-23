@@ -1,5 +1,5 @@
-From 8dbc7b4ae8e3d9d56dadb49e1861bc46c6f8ca37 Mon Sep 17 00:00:00 2001
-Message-Id: <8dbc7b4ae8e3d9d56dadb49e1861bc46c6f8ca37.1658442152.git.36827317+vvd170501@users.noreply.github.com>
+From 9596d0586b2e10237fd8a56898179d6a5b2b4288 Mon Sep 17 00:00:00 2001
+Message-Id: <9596d0586b2e10237fd8a56898179d6a5b2b4288.1658600443.git.buildbot@videolan.org>
 From: vvd170501 <36827317+vvd170501@users.noreply.github.com>
 Date: Mon, 22 Mar 2021 21:37:07 +0300
 Subject: [PATCH 1/2] allow using interfaces with disabled multicast as
@@ -19,24 +19,30 @@ is specified as --miface (in Advanced options)
 DISCLAIMER: this patch is experimental and was only tested with a Wireguard tunnel. It may not
 work with other VPN types
 Message-Id: <799640559fd17fcfce0985d183db3578ce5fa6ab.1616448282.git.36827317+vvd170501@users.noreply.github.com>
+Message-Id: <8dbc7b4ae8e3d9d56dadb49e1861bc46c6f8ca37.1658442152.git.36827317+vvd170501@users.noreply.github.com>
+Message-Id: <3ba8ab4f692add01611285e1fa34e7cda037badf.1658596914.git.buildbot@videolan.org>
+Message-Id: <3cba95cc4ac287dff472936f4fa060f0568d860f.1658598664.git.buildbot@videolan.org>
 ---
- ...rfaces-with-disabled-multicast-as-mi.patch | 45 +++++++++++++++++++
- 1 file changed, 45 insertions(+)
- create mode 100755 libvlc/patches/vlc3/0999-allow-using-interfaces-with-disabled-multicast-as-mi.patch
+ ...rfaces-with-disabled-multicast-as-mi.patch | 48 +++++++++++++++++++
+ 1 file changed, 48 insertions(+)
+ create mode 100644 libvlc/patches/vlc3/0999-allow-using-interfaces-with-disabled-multicast-as-mi.patch
 
 diff --git a/libvlc/patches/vlc3/0999-allow-using-interfaces-with-disabled-multicast-as-mi.patch b/libvlc/patches/vlc3/0999-allow-using-interfaces-with-disabled-multicast-as-mi.patch
-new file mode 100755
-index 0000000..4f5ba1a
+new file mode 100644
+index 0000000..c0b139c
 --- /dev/null
 +++ b/libvlc/patches/vlc3/0999-allow-using-interfaces-with-disabled-multicast-as-mi.patch
-@@ -0,0 +1,45 @@
-+From c0b1ae7e01b5b041906bdf6ed78b12fd0937e9f4 Mon Sep 17 00:00:00 2001
-+Message-Id: <c0b1ae7e01b5b041906bdf6ed78b12fd0937e9f4.1658441825.git.buildbot@videolan.org>
+@@ -0,0 +1,48 @@
++From 2c2906bfabc6bf8e3db4d900815b1e8fbfba71cc Mon Sep 17 00:00:00 2001
++Message-Id: <2c2906bfabc6bf8e3db4d900815b1e8fbfba71cc.1658600334.git.buildbot@videolan.org>
 +From: vvd170501 <36827317+vvd170501@users.noreply.github.com>
 +Date: Mon, 22 Mar 2021 21:34:06 +0300
 +Subject: [PATCH 1/2] allow using interfaces with disabled multicast as
 + --miface
 +
++Message-Id: <c0b1ae7e01b5b041906bdf6ed78b12fd0937e9f4.1658441825.git.buildbot@videolan.org>
++Message-Id: <b41754c097cb9500ef02431f3e1222f692229b86.1658596574.git.buildbot@videolan.org>
++Message-Id: <0428ed01fa7024c5e1cde0a4ba1573808db944eb.1658598430.git.buildbot@videolan.org>
 +---
 + contrib/src/upnp/multicast.patch | 11 +++++++++++
 + contrib/src/upnp/rules.mak       |  1 +
@@ -45,18 +51,18 @@ index 0000000..4f5ba1a
 +
 +diff --git a/contrib/src/upnp/multicast.patch b/contrib/src/upnp/multicast.patch
 +new file mode 100644
-+index 0000000000..cfe34be373
++index 0000000000..edbc9b7929
 +--- /dev/null
 ++++ b/contrib/src/upnp/multicast.patch
 +@@ -0,0 +1,11 @@
-++--- upnp/upnp/src/api/upnpapi.c.orig	2013-04-08 00:23:46.000000000 +0200
-+++++ upnp/upnp/src/api/upnpapi.c	2013-04-08 00:25:49.000000000 +0200
-++@@ -3495,7 +3495,7 @@ int UpnpGetIfInfo(const char *IfName)
-++ 		/* don't support MULTICAST. */
-++ 		if ((ifReq.ifr_flags & IFF_LOOPBACK)
-++ 		    || (!(ifReq.ifr_flags & IFF_UP))
-++-		    || (!(ifReq.ifr_flags & IFF_MULTICAST))) {
-+++		    || (!(ifReq.ifr_flags & IFF_MULTICAST) && !IfName)) {
+++--- upnp/upnp/src/api/upnpapi.c.orig	2022-07-23 17:06:49.343379639 +0000
++++++ upnp/upnp/src/api/upnpapi.c	2022-07-23 17:09:17.289021395 +0000
+++@@ -3983,7 +3983,7 @@
+++ 		 * don't support MULTICAST. */
+++ 		if ((ifReq.ifr_flags & IFF_LOOPBACK) ||
+++ 			(!(ifReq.ifr_flags & IFF_UP)) ||
+++-			(!(ifReq.ifr_flags & IFF_MULTICAST))) {
++++			(!(ifReq.ifr_flags & IFF_MULTICAST) && !IfName)) {
 ++ 			continue;
 ++ 		}
 ++ 		if (ifname_found == 0) {
@@ -76,5 +82,5 @@ index 0000000..4f5ba1a
 +2.20.1
 +
 -- 
-2.34.1
+2.20.1
 

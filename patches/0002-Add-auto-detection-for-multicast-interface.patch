@@ -1,7 +1,7 @@
-From 6fcfe0feeeeed98ca00e493522654b7106f11950 Mon Sep 17 00:00:00 2001
-Message-Id: <6fcfe0feeeeed98ca00e493522654b7106f11950.1658442152.git.36827317+vvd170501@users.noreply.github.com>
-In-Reply-To: <8dbc7b4ae8e3d9d56dadb49e1861bc46c6f8ca37.1658442152.git.36827317+vvd170501@users.noreply.github.com>
-References: <8dbc7b4ae8e3d9d56dadb49e1861bc46c6f8ca37.1658442152.git.36827317+vvd170501@users.noreply.github.com>
+From 0d6da87765fefe6922b843825e2493577729d749 Mon Sep 17 00:00:00 2001
+Message-Id: <0d6da87765fefe6922b843825e2493577729d749.1658600443.git.buildbot@videolan.org>
+In-Reply-To: <9596d0586b2e10237fd8a56898179d6a5b2b4288.1658600443.git.buildbot@videolan.org>
+References: <9596d0586b2e10237fd8a56898179d6a5b2b4288.1658600443.git.buildbot@videolan.org>
 From: vvd170501 <36827317+vvd170501@users.noreply.github.com>
 Date: Tue, 23 Mar 2021 19:09:33 +0300
 Subject: [PATCH 2/2] Add auto-detection for multicast interface
@@ -12,39 +12,45 @@ which is used for routing multicast packets to 239.255.255.250.
 DISCLAIMER: this patch is experimental, it may not work on your system
 or even lead to a crash. Use it at your own risk
 Message-Id: <9ffc047e2d4173b06595a1800eb1366faddd4ba8.1616528075.git.36827317+vvd170501@users.noreply.github.com>
+Message-Id: <6fcfe0feeeeed98ca00e493522654b7106f11950.1658442152.git.36827317+vvd170501@users.noreply.github.com>
+Message-Id: <6dddad61739f422f4c10f42a5fa1c072c34b33f3.1658596914.git.buildbot@videolan.org>
+Message-Id: <ab7b2f4b723724a523075113b879f4b38c245685.1658598664.git.buildbot@videolan.org>
 ---
- ...interface-used-for-routing-upnp-mult.patch | 210 ++++++++++++++++++
- 1 file changed, 210 insertions(+)
- create mode 100755 libvlc/patches/vlc3/1000-Auto-detect-the-interface-used-for-routing-upnp-mult.patch
+ ...interface-used-for-routing-upnp-mult.patch | 212 ++++++++++++++++++
+ 1 file changed, 212 insertions(+)
+ create mode 100644 libvlc/patches/vlc3/1000-Auto-detect-the-interface-used-for-routing-upnp-mult.patch
 
 diff --git a/libvlc/patches/vlc3/1000-Auto-detect-the-interface-used-for-routing-upnp-mult.patch b/libvlc/patches/vlc3/1000-Auto-detect-the-interface-used-for-routing-upnp-mult.patch
-new file mode 100755
-index 0000000..8f950c0
+new file mode 100644
+index 0000000..d627ea6
 --- /dev/null
 +++ b/libvlc/patches/vlc3/1000-Auto-detect-the-interface-used-for-routing-upnp-mult.patch
-@@ -0,0 +1,210 @@
-+From 7a987b648a70292136506545838cc27192727fb2 Mon Sep 17 00:00:00 2001
-+Message-Id: <7a987b648a70292136506545838cc27192727fb2.1658441825.git.buildbot@videolan.org>
-+In-Reply-To: <c0b1ae7e01b5b041906bdf6ed78b12fd0937e9f4.1658441825.git.buildbot@videolan.org>
-+References: <c0b1ae7e01b5b041906bdf6ed78b12fd0937e9f4.1658441825.git.buildbot@videolan.org>
+@@ -0,0 +1,212 @@
++From 8843b746358fd16e774fecc7fdf204412e69e7d4 Mon Sep 17 00:00:00 2001
++Message-Id: <8843b746358fd16e774fecc7fdf204412e69e7d4.1658600334.git.buildbot@videolan.org>
++In-Reply-To: <2c2906bfabc6bf8e3db4d900815b1e8fbfba71cc.1658600334.git.buildbot@videolan.org>
++References: <2c2906bfabc6bf8e3db4d900815b1e8fbfba71cc.1658600334.git.buildbot@videolan.org>
 +From: vvd170501 <36827317+vvd170501@users.noreply.github.com>
 +Date: Tue, 23 Mar 2021 18:59:39 +0300
 +Subject: [PATCH 2/2] Auto-detect the interface used for routing upnp
 + multicasts
 +
 +Message-Id: <cbf9760fdb3b7faec08f4806be1172e811156938.1616515200.git.36827317+vvd170501@users.noreply.github.com>
++Message-Id: <7a987b648a70292136506545838cc27192727fb2.1658441825.git.buildbot@videolan.org>
++Message-Id: <6bbb66e0c8c9780325b9ea3aa0eb0dcc547fd3cd.1658596574.git.buildbot@videolan.org>
++Message-Id: <d09e9e8844fc9aba3c118036a93c9e39631e9723.1658598430.git.buildbot@videolan.org>
 +---
-+ .../src/upnp/auto-multicast-interface.patch   | 173 ++++++++++++++++++
++ .../src/upnp/auto-multicast-interface.patch   | 172 ++++++++++++++++++
 + contrib/src/upnp/rules.mak                    |   1 +
-+ 2 files changed, 174 insertions(+)
++ 2 files changed, 173 insertions(+)
 + create mode 100644 contrib/src/upnp/auto-multicast-interface.patch
 +
 +diff --git a/contrib/src/upnp/auto-multicast-interface.patch b/contrib/src/upnp/auto-multicast-interface.patch
 +new file mode 100644
-+index 0000000000..1e40414de9
++index 0000000000..1043f1f0c4
 +--- /dev/null
 ++++ b/contrib/src/upnp/auto-multicast-interface.patch
-+@@ -0,0 +1,173 @@
++@@ -0,0 +1,172 @@
 ++From 81c78c6fcb8d7769c9c666b3256ea02f730b667c Mon Sep 17 00:00:00 2001
 ++From: vvd170501 <36827317+vvd170501@users.noreply.github.com>
 ++Date: Tue, 23 Mar 2021 18:36:09 +0300
@@ -55,16 +61,14 @@ index 0000000..8f950c0
 ++index bafe1053..49df8937 100644
 ++--- a/upnp/Makefile.am
 +++++ b/upnp/Makefile.am
-++@@ -123,7 +123,8 @@ endif
-++ # api
-++ libupnp_la_SOURCES += \
+++@@ -168,6 +168,7 @@ endif
+++ 	src/api/UpnpSubscriptionRequest.c \
 ++ 	src/api/UpnpString.c \
-++-	src/api/upnpapi.c
-+++	src/api/upnpapi.c \
-+++	src/api/auto-mcast.c
+++ 	src/api/upnpapi.c \
++++	src/api/auto-mcast.c \
+++ 	src/api/upnpdebug.c
 ++ 
 ++ if ENABLE_TOOLS
-++ libupnp_la_SOURCES += src/api/upnptools.c
 ++diff --git a/upnp/src/api/auto-mcast.c b/upnp/src/api/auto-mcast.c
 ++new file mode 100644
 ++index 00000000..cf697e82
@@ -195,16 +199,17 @@ index 0000000..8f950c0
 ++ 
 ++ #include "httpreadwrite.h"
 ++ #include "membuffer.h"
-++@@ -507,6 +508,9 @@ int UpnpInit2(const char *IfName, unsigned short DestPort)
+++@@ -515,6 +516,10 @@ int UpnpInit2(const char *IfName, unsigned short DestPort)
 ++ 		goto exit_function;
 ++ 	}
 ++ 
-+++    if (!IfName) {
-+++        IfName = get_ifname("239.255.255.250");
-+++    }
-++ 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
-++ 		"UpnpInit2 with IfName=%s, DestPort=%d.\n", 
-++ 		IfName ? IfName : "", DestPort);
++++	if (!IfName) {
++++		IfName = get_ifname("239.255.255.250");
++++	}
++++
+++ 	UpnpPrintf(UPNP_INFO,
+++ 		API,
+++ 		__FILE__,
 ++diff --git a/upnp/src/inc/auto-mcast.h b/upnp/src/inc/auto-mcast.h
 ++new file mode 100644
 ++index 00000000..302079b6
@@ -234,5 +239,5 @@ index 0000000..8f950c0
 +2.20.1
 +
 -- 
-2.34.1
+2.20.1
 
